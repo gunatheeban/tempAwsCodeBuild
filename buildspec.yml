@@ -14,18 +14,20 @@ phases:
 
   build:
     commands:
+      - echo "Exploring the container to locate 'anon.sh'"
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "find / -name anon.sh"
       - echo "Running anonymization"
-      - docker run -v $(pwd)/rules.sql:/rules.sql -v $(pwd)/testdb.sql:/testdb.sql registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "cat /testdb.sql /rules.sql | /anon.sh > /anonymized.sql"
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "cat /workspace/testdb.sql /workspace/rules.sql | /path/to/anon.sh > /workspace/anonymized.sql"
       - echo "Anonymization complete"
 
   post_build:
     commands:
       - echo "Uploading anonymized file to S3"
-      - aws s3 cp /anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
+      - aws s3 cp anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
       - echo "Build complete"
       - ls -la
-      - cat /anonymized.sql
+      - cat anonymized.sql
 
 artifacts:
   files:
-    - /anonymized.sql
+    - anonymized.sql
