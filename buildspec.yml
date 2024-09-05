@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging into Docker..."
+      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:stable
+      - echo "Docker image pulled successfully."
+
+  build:
+    commands:
+      - echo "Docker image has been pulled" > anonymized.sql
+
+  post_build:
+    commands:
+      - echo "Build complete"
+      - cat anonymized.sql
+
+artifacts:
+  files:
+    - anonymized.sql
