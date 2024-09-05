@@ -15,7 +15,7 @@ phases:
   build:
     commands:
       - echo "Running anonymization"
-      - docker run -v $(pwd)/rules.sql:/rules.sql -v $(pwd)/testdb.sql:/testdb.sql registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "pg_dump_anonymizer -f /anonymized.sql --rules-file /rules.sql /testdb.sql"
+      - docker run -v $(pwd)/rules.sql:/rules.sql -v $(pwd)/testdb.sql:/testdb.sql registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "cat /testdb.sql /rules.sql | ./anon.sh > /anonymized.sql"
       - echo "Anonymization complete"
 
   post_build:
