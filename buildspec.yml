@@ -1,0 +1,31 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging into Docker..."
+      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:stable
+      - echo "Docker image pulled successfully."
+      - echo "Downloading original SQL dump and rule file..."
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/testdb.sql ./testdb.sql
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
+      - echo "Files downloaded:"
+      - ls -la
+
+  build:
+    commands:
+      - echo "Running anonymization"
+      - docker run -v $(pwd)/rules.sql:/rules.sql -v $(pwd)/testdb.sql:/testdb.sql registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "pg_dump_anonymizer -f /anonymized.sql --rules-file /rules.sql /testdb.sql"
+      - echo "Anonymization complete"
+
+  post_build:
+    commands:
+      - echo "Uploading anonymized file to S3"
+      - aws s3 cp /anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
+      - echo "Build complete"
+      - ls -la
+      - cat /anonymized.sql
+
+artifacts:
+  files:
+    - /anonymized.sql
