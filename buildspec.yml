@@ -14,10 +14,8 @@ phases:
 
   build:
     commands:
-      - echo "Exploring the container to locate 'anon.sh'"
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "find / -name anon.sh"
       - echo "Running anonymization"
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "cat /workspace/testdb.sql /workspace/rules.sql | /path/to/anon.sh > /workspace/anonymized.sql"
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "cat /workspace/testdb.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
       - echo "Anonymization complete"
 
   post_build:
