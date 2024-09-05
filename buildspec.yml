@@ -6,10 +6,15 @@ phases:
       - echo "Logging into Docker..."
       - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:stable
       - echo "Docker image pulled successfully."
+      - echo "Downloading original SQL dump and rule file..."
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/testdb.sql ./testdb.sql
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
+      - echo "Files downloaded:"
+      - ls -la
 
   build:
     commands:
-      - echo "Docker image has been pulled" > anonymized.sql
+      - echo "Docker image has been pulled and files downloaded" > anonymized.sql
 
   post_build:
     commands:
