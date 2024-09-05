@@ -1,0 +1,11 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - echo "Creating anonymized.sql with sample data..."
+      - echo "it works" > anonymized.sql
+
+artifacts:
+  files:
+    - anonymized.sql
