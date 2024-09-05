@@ -4,7 +4,6 @@ phases:
   pre_build:
     commands:
       - echo "Logging into Docker..."
-      - aws ecr get-login-password --region <your-region> | docker login --username AWS --password-stdin <aws-account-id>.dkr.ecr.<your-region>.amazonaws.com
       - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:stable
       - echo "Downloading original SQL dump and rule file..."
       - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/testdb.sql ./testdb.sql
