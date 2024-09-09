@@ -3,15 +3,17 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo "Installing PostgreSQL client..."
-      - yum install -y postgresql
-      - echo "PostgreSQL client installed."
+      - echo "Using Docker to run PostgreSQL client..."
+      - docker pull postgres:latest
+      - echo "Docker image pulled successfully."
 
   pre_build:
     commands:
       - echo "Verifying database connection..."
-      - export PGPASSWORD=irvpass
-      - psql -h 52.64.11.246 -U irvuser -d irvdblive -c '\l'
+      - docker run --rm \
+          -e PGPASSWORD=irvpass \
+          postgres:latest \
+          psql -h 52.64.11.246 -U irvuser -d irvdblive -c '\l' > connection_test.log 2>&1
       - echo "Database connection verified."
 
 artifacts:
