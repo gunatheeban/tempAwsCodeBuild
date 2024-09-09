@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Installing PostgreSQL client..."
+      - apt-get update
+      - apt-get install -y postgresql-client
+      - echo "PostgreSQL client installed."
+
+  pre_build:
+    commands:
+      - echo "Verifying database connection..."
+      - export PGPASSWORD=irvpass
+      - psql -h 52.64.11.246 -U irvuser -d irvdblive -c '\l'
+      - echo "Database connection verified."
+
+artifacts:
+  files:
+    - connection_test.log
