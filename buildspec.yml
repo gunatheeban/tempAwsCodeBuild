@@ -10,8 +10,9 @@ phases:
       - echo "Creating backup of the database..."
       - docker run --rm \
           -e PGPASSWORD=irvpass \
+          -v $(pwd):/workspace \
           postgres:latest \
-          pg_dump -h 52.64.11.246 -U irvuser -d irvdblive -f /workspace/test_db.sql
+          pg_dump -h 52.64.11.237 -U irvuser -d irvdblive -f /workspace/test_db.sql
           
       - echo "Backup created successfully."
       - echo "Downloading anonymization rules..."
