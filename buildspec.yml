@@ -8,7 +8,7 @@ phases:
       - echo "Docker image pulled successfully."
       
       - echo "Running pg_dump to backup the database..."
-      - docker run --rm \
+      - docker run \
           -e PGPASSWORD=irvpass \
           -v $(pwd):/workspace \
           postgres:latest \
