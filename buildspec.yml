@@ -4,8 +4,7 @@ phases:
   install:
     commands:
       - echo "Installing PostgreSQL client..."
-      - apt-get update
-      - apt-get install -y postgresql-client
+      - yum install -y postgresql
       - echo "PostgreSQL client installed."
 
   pre_build:
