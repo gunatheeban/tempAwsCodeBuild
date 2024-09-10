@@ -1,17 +1,13 @@
+version: 0.2
+
 phases:
   pre_build:
     commands:
       - echo "Logging into Docker..."
       - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:stable
       - echo "Docker image pulled successfully."
-      
-      # Test network connectivity
-      - echo "Testing network connectivity..."
-      - docker run --rm registry.gitlab.com/dalibo/postgresql_anonymizer:stable ping -c 4 google.com
-      
       - echo "Running pg_dump to backup the database..."
       - docker run --rm -e PGPASSWORD=irvpass -v $(pwd):/workspace postgres:latest pg_dump -h 52.64.11.246 -U irvuser -d irvdblive -f /workspace/test_db.sql
-      
       - echo "Backup created successfully."
       - echo "Downloading anonymization rules..."
       - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
