@@ -26,7 +26,6 @@ phases:
       - aws s3 cp anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
       - echo "Build complete"
       - ls -la
-      - cat anonymized.sql
 
 artifacts:
   files:
