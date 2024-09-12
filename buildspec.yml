@@ -2,9 +2,39 @@ version: 0.2
 
 env:
   variables:
-    DB_HOST: "test-db-host"
-    
+    DB_HOST: "52.64.11.246"
+    DB_NAME: "irvdblive"
+    DB_USER: "irvuser"
+    DB_PASSWORD: "irvpass"
+    S3_BUCKET: "my-test-bucket-southeast-2"
+
 phases:
+  pre_build:
+    commands:
+      - echo "Logging into Docker..."
+      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:stable
+      - echo "Docker image pulled successfully."
+      - echo "Running pg_dump to backup the database..."
+      - docker run --rm -e PGPASSWORD=${DB_PASSWORD} -v $(pwd):/workspace postgres:latest pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -f /workspace/test_db.sql
+      - echo "Backup created successfully."
+      - echo "Downloading anonymization rules..."
+      - aws s3 cp s3://${S3_BUCKET}/sqlFiles/sinorbis/config/rules.sql ./rules.sql
+      - echo "Files downloaded:"
+      - ls -la
+
   build:
     commands:
-      - echo "Success ${DB_HOST}"
+      - echo "Running anonymization"
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "cat /workspace/test_db.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
+      - echo "Anonymization complete"
+
+  post_build:
+    commands:
+      - echo "Uploading anonymized file to S3"
+      - aws s3 cp anonymized.sql s3://${S3_BUCKET}/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
+      - echo "Build complete"
+      - ls -la
+
+artifacts:
+  files:
+    - anonymized.sql
