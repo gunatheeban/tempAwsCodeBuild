@@ -1,6 +1,10 @@
 version: 0.2
 
+env:
+  variables:
+    DB_HOST: "test-db-host"
+    
 phases:
   build:
     commands:
-      - echo "Success"
+      - echo "Success ${DB_HOST}"
