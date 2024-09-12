@@ -1,0 +1,35 @@
+version: 0.2
+
+env:
+  variables:
+    DB_HOST: "test-db-host"
+    DB_NAME: "test-db-name"
+    DB_USER: "test-db-user"
+    DB_PASSWORD: "test-db-password"
+    ENVIRONMENT: "test"
+
+phases:
+  install:
+    commands:
+      - echo "Installing dependencies..."
+
+  pre_build:
+    commands:
+      - echo "Pre-build phase..."
+
+  build:
+    commands:
+      - echo "Running build phase..."
+      - echo "DB_HOST: $DB_HOST"
+      - echo "DB_NAME: $DB_NAME"
+      - echo "DB_USER: $DB_USER"
+      - echo "DB_PASSWORD: $DB_PASSWORD"
+      - echo "ENVIRONMENT: $ENVIRONMENT"
+
+  post_build:
+    commands:
+      - echo "Post-build phase completed."
+
+artifacts:
+  files:
+    - '**/*'
