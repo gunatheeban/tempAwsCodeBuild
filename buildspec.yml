@@ -1,27 +1,6 @@
 version: 0.2
 
-env:
-  variables:
-    DB_HOST: "test-db-host"
-
 phases:
-  install:
-    commands:
-      - echo "Installing dependencies..."
-
-  pre_build:
-    commands:
-      - echo "Pre-build phase..."
-
   build:
     commands:
-      - echo "Running build phase..."
-      - echo "DB_HOST: $DB_HOST"
-
-  post_build:
-    commands:
-      - echo "Post-build phase completed."
-
-artifacts:
-  files:
-    - '**/*'
+      - echo "Success"
