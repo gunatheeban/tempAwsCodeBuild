@@ -28,11 +28,9 @@ phases:
     commands:
       - echo "Connecting to the remote PostgreSQL instance and running test query..."
       - export PGPASSWORD=${DB_PASSWORD}
-      - docker exec pg_container bash -c "export PGPASSWORD=${DB_PASSWORD} && psql --host=${DB_HOST} --port=5432 --username=${DB_USER} --dbname=${DB_NAME} -c \"SELECT * FROM public.user_info ORDER BY user_id ASC LIMIT 1\" -o /query_output.txt"
-      - echo "Copying query output from container to host..."
-      - docker cp pg_container:/query_output.txt ./query_output.txt
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "PGPASSWORD=${DB_PASSWORD} pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} | cat - /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
       - echo "Query output saved to query_output.txt"
-      - cat query_output.txt
+      - cat anonymized.sql
 
   post_build:
     commands:
