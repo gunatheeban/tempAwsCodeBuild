@@ -12,11 +12,11 @@ phases:
   pre_build:
     commands:
       - echo "Logging into Docker..."
-      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:stable
+      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:latest
       - echo "Docker image pulled successfully."
 
       - echo "Starting PostgreSQL container..."
-      - docker run -d --name pg_container -e POSTGRES_PASSWORD=${DB_PASSWORD} dalibo/postgresql_anonymizer:stable
+      - docker run -d --name pg_container -e POSTGRES_PASSWORD=${DB_PASSWORD} registry.gitlab.com/dalibo/postgresql_anonymizer:latest
       - echo "PostgreSQL container started successfully."
 
       - echo "Downloading anonymization rules..."
