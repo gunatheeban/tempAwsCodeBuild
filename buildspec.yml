@@ -11,9 +11,13 @@ env:
 phases:
   pre_build:
     commands:
-      - echo "Logging into Docker..."
-      - docker run -d --name pg_container -e POSTGRES_PASSWORD=${DB_PASSWORD} registry.gitlab.com/dalibo/postgresql_anonymizer:stable
-      - echo "Docker container started successfully."
+      - echo "Pulling the postgresql_anonymizer Docker image..."
+      - docker pull dalibo/postgresql_anonymizer
+      - echo "Docker image pulled successfully."
+
+      - echo "Starting PostgreSQL container..."
+      - docker run -d --name pg_container -e POSTGRES_PASSWORD=${DB_PASSWORD} dalibo/postgresql_anonymizer
+      - echo "PostgreSQL container started successfully."
 
       - echo "Downloading anonymization rules..."
       - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
