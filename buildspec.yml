@@ -1,0 +1,35 @@
+version: 0.2
+
+env:
+  variables:
+    DB_HOST: "your-remote-db-host"
+    DB_NAME: "your-database-name"
+    DB_USER: "your-database-user"
+    DB_PASSWORD: "your-database-password"
+    S3_BUCKET: "my-test-bucket-southeast-2"
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging into Docker..."
+      - docker run -d --name pg_container -e POSTGRES_PASSWORD=${DB_PASSWORD} registry.gitlab.com/dalibo/postgresql_anonymizer:stable
+      - echo "Docker container started successfully."
+
+      - echo "Downloading anonymization rules..."
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
+      - echo "Files downloaded:"
+      - ls -la
+
+  build:
+    commands:
+      - echo "Connecting to the remote PostgreSQL instance and running test query..."
+      - export PGPASSWORD=${DB_PASSWORD}
+      - psql --host=${DB_HOST} --port=5432 --username=${DB_USER} --dbname=${DB_NAME} -c "SELECT * FROM public.user_info ORDER BY user_id ASC LIMIT 1"
+  
+  post_build:
+    commands:
+      - echo "Build script completed."
+
+artifacts:
+  files:
+    - rules.sql
