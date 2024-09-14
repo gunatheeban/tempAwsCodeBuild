@@ -16,7 +16,7 @@ phases:
       - echo "Docker image pulled successfully."
 
       - echo "Starting PostgreSQL container..."
-      - docker run -d --name pg_container -e POSTGRES_PASSWORD=${DB_PASSWORD} dalibo/postgresql_anonymizer
+      - docker run -d --name pg_container -e POSTGRES_PASSWORD=${DB_PASSWORD} dalibo/postgresql_anonymizer:stable
       - echo "PostgreSQL container started successfully."
 
       - echo "Downloading anonymization rules..."
@@ -28,8 +28,10 @@ phases:
     commands:
       - echo "Connecting to the remote PostgreSQL instance and running test query..."
       - export PGPASSWORD=${DB_PASSWORD}
-      - psql --host=${DB_HOST} --port=5432 --username=${DB_USER} --dbname=${DB_NAME} -c "SELECT * FROM public.user_info ORDER BY user_id ASC LIMIT 1"
-  
+      - psql --host=${DB_HOST} --port=5432 --username=${DB_USER} --dbname=${DB_NAME} -c "SELECT * FROM public.user_info ORDER BY user_id ASC LIMIT 1" -o query_output.txt
+      - echo "Query output saved to query_output.txt"
+      - cat query_output.txt
+      
   post_build:
     commands:
       - echo "Build script completed."
