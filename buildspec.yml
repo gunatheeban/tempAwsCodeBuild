@@ -11,8 +11,8 @@ env:
 phases:
   pre_build:
     commands:
-      - echo "Pulling the postgresql_anonymizer Docker image..."
-      - docker pull dalibo/postgresql_anonymizer
+      - echo "Logging into Docker..."
+      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:stable
       - echo "Docker image pulled successfully."
 
       - echo "Starting PostgreSQL container..."
