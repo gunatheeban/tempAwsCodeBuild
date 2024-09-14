@@ -30,11 +30,13 @@ phases:
       - export PGPASSWORD=${DB_PASSWORD}
       - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "PGPASSWORD=${DB_PASSWORD} pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} | cat - /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
       - echo "Query output saved to query_output.txt"
-      - cat anonymized.sql
-
+      
   post_build:
     commands:
-      - echo "Build script completed."
+      - echo "Uploading anonymized file to S3"
+      - aws s3 cp anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
+      - echo "Build complete"
+      - ls -la
 
 artifacts:
   files:
