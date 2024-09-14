@@ -26,8 +26,6 @@ phases:
 
   build:
     commands:
-      - echo "Installing PostgreSQL client..."
-      - apt-get update && apt-get install -y postgresql-client
       - echo "Connecting to the remote PostgreSQL instance and running test query..."
       - docker exec -it pg_container export PGPASSWORD=${DB_PASSWORD}
       - docker exec -it pg_container psql --host='52.65.62.107' --port=5432 --username='irvuser' --dbname='irvdblive' -c "SELECT * FROM irvdblive.public.user_info ORDER BY user_id ASC LIMIT 1" -o query_output.txt
