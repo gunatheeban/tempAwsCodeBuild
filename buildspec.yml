@@ -24,17 +24,15 @@ phases:
       - echo "Files downloaded:"
       - ls -la
 
-  build:
-    commands:
-      - echo "Dumping remote database..."
-      - export PGPASSWORD=${DB_PASSWORD}
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -f /workspace/db_dump.sql"
-      - ls -la /workspace  # Verify that db_dump.sql is created
-    
-      - echo "Running anonymization within local container..."
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "psql -U postgres -c \"CREATE EXTENSION IF NOT EXISTS anon CASCADE; SET search_path = public, anon; SELECT anon.dump('/workspace/anonymized.sql');\""
-      - ls -la /workspace  # Verify that anonymized.sql is created
-
+build:
+  commands:
+    - echo "Dumping remote database..."
+    - export PGPASSWORD=${DB_PASSWORD}
+    - docker run -v $(pwd):/workspace -e PGPASSWORD=${DB_PASSWORD} registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -f /workspace/db_dump.sql"
+    - echo "Checking the contents of /workspace..."
+    - ls -la $(pwd)
+    - echo "Running anonymization within local container..."
+    - docker exec pg_container psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS anon CASCADE; SET search_path = public, anon; SELECT anon.dump('/workspace/anonymized.sql');"
   post_build:
     commands:
       - echo "Uploading anonymized file to S3"
@@ -45,3 +43,4 @@ phases:
 artifacts:
   files:
     - rules.sql
+
