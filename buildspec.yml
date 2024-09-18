@@ -27,10 +27,14 @@ phases:
   build:
     commands:
       - echo "Dumping remote database..."
-      - docker exec pg_container pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} > /workspace/db_dump.sql
+      - export PGPASSWORD=${DB_PASSWORD}
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -f /workspace/db_dump.sql"
+      - ls -la /workspace  # Verify that db_dump.sql is created
+    
       - echo "Running anonymization within local container..."
-      - docker exec pg_container psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS anon CASCADE; SET search_path = public, anon; SELECT anon.dump('/workspace/anonymized.sql');"
-      
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "psql -U postgres -c \"CREATE EXTENSION IF NOT EXISTS anon CASCADE; SET search_path = public, anon; SELECT anon.dump('/workspace/anonymized.sql');\""
+      - ls -la /workspace  # Verify that anonymized.sql is created
+
   post_build:
     commands:
       - echo "Uploading anonymized file to S3"
