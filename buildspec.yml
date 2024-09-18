@@ -20,7 +20,7 @@ phases:
       - echo "PostgreSQL container started successfully."
 
       - echo "Downloading anonymization rules..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/emp_temp/config/rules.sql ./rules.sql
       - echo "Files downloaded:"
       - ls -la
 
@@ -34,7 +34,7 @@ phases:
   post_build:
     commands:
       - echo "Uploading anonymized file to S3"
-      - aws s3 cp anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
+      - aws s3 cp anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/emp_temp/anonymizerFiles/anonymized.sql
       - echo "Build complete"
       - ls -la
 
