@@ -20,27 +20,24 @@ phases:
       - echo "PostgreSQL container started successfully."
 
       - echo "Downloading anonymization rules..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/emp_test/config/rules.sql ./rules.sql
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
       - echo "Files downloaded:"
       - ls -la
 
-build:
-  commands:
-    - echo "Dumping remote database..."
-    - export PGPASSWORD=${DB_PASSWORD}
-    - docker run -v $(pwd):/workspace -e PGPASSWORD=${DB_PASSWORD} registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -f /workspace/db_dump.sql"
-    - echo "Checking the contents of /workspace..."
-    - ls -la $(pwd)
-    - echo "Running anonymization within local container..."
-    - docker exec pg_container psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS anon CASCADE; SET search_path = public, anon; SELECT anon.dump('/workspace/anonymized.sql');"
+  build:
+    commands:
+      - echo "Connecting to the remote PostgreSQL instance and running test query..."
+      - export PGPASSWORD=${DB_PASSWORD}
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "PGPASSWORD=${DB_PASSWORD} pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} | cat - /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
+      - echo "Query output saved to query_output.txt"
+      
   post_build:
     commands:
       - echo "Uploading anonymized file to S3"
-      - aws s3 cp anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/emp_test/anonymizerFiles/anonymized.sql
+      - aws s3 cp anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
       - echo "Build complete"
       - ls -la
 
 artifacts:
   files:
     - rules.sql
-
