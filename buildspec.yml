@@ -29,7 +29,16 @@ phases:
       - export PGPASSWORD=${DB_PASSWORD}
       - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "PGPASSWORD=${DB_PASSWORD} pg_dump -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} > /workspace/anonymized.sql && cat /workspace/anonymized.sql"
       - echo "Query output saved to query_output.txt"
-      
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "
+          echo 'PostgreSQL Version:' && \
+          pg_dump --version && \
+          echo 'PATH:' && \
+          echo \$PATH && \
+          echo 'pg_config:' && \
+          pg_config && \
+          echo 'ls \$(pg_config --bindir):' && \
+          ls \$(pg_config --bindir)"
+          
   post_build:
     commands:
       - echo "Uploading anonymized file to S3"
