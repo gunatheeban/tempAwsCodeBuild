@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      docker: 20
+  pre_build:
+    commands:
+      - echo "Pulling the PostgreSQL Anonymizer Docker image..."
+      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:latest
+
+  build:
+    commands:
+      - echo "Finding the path of pg_dump_anon.sh..."
+      - docker run --rm registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "find / -name 'pg_dump_anon.sh' 2>/dev/null"
+
+  post_build:
+    commands:
+      - echo "Build process complete."
