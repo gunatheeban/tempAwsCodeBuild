@@ -2,10 +2,14 @@ version: 0.2
 
 phases:
   install:
-    runtime-versions:
-      docker: 20
+    commands:
+      - echo "Installing Docker..."
+      - yum install -y docker 
+
   pre_build:
     commands:
+      - echo "Starting Docker service..."
+      - service docker start
       - echo "Pulling the PostgreSQL Anonymizer Docker image..."
       - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:latest
 
