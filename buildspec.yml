@@ -51,9 +51,13 @@ phases:
       - echo "Listing /workspace after creating final_dump.sql:"
       - ls -la /workspace
 
-      # Add debugging: Open a shell in the Docker container to manually inspect the contents
-      - echo "Opening a shell in the Docker container for debugging..."
-      - docker run -it -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh
+      # Log the /workspace contents from inside the Docker container
+      - echo "Logging /workspace contents from inside the Docker container..."
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "ls -la /workspace"
+
+      # Running anonymization
+      - echo "Running anonymization..."
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
 
   post_build:
     commands:
