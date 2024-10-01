@@ -12,9 +12,16 @@ phases:
       - export DB_NAME="org_db"
       - export DB_PASSWORD="irvpass"
       - export ORG_ID=1
-      - echo "Downloading rule file from S3..."
+      - echo "Creating /workspace directory..."
       - mkdir -p /workspace
+
+      # Download rules.sql from S3 to /workspace
+      - echo "Downloading rule file from S3..."
       - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql /workspace/rules.sql
+      
+      # Verify that rules.sql exists in /workspace
+      - echo "Listing contents of /workspace to verify rules.sql..."
+      - ls -la /workspace
 
   build:
     commands:
@@ -47,6 +54,10 @@ phases:
       # Verify that final_dump.sql exists
       - echo "Listing current directory after creating final_dump.sql:"
       - ls -la $(pwd)
+
+      # Check if rules.sql is in /workspace before anonymization
+      - echo "Checking if rules.sql exists in /workspace before running anonymization..."
+      - ls -la /workspace
 
       - echo "Running anonymization..."
       - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "ls -la /workspace && cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
