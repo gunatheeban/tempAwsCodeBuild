@@ -13,42 +13,45 @@ phases:
       - export DB_PASSWORD="irvpass"
       - export ORG_ID=1
       - echo "Creating /workspace directory..."
-      - mkdir -p /workspace
+      - mkdir -p workspace
 
   build:
     commands:
       - echo "Running pg_dump for schema-only..."
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest pg_dump --schema-only -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > /workspace/schema_dump.sql
+      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd)/workspace:/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest pg_dump --schema-only -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > workspace/schema_dump.sql
 
       - echo "Running psql to dump organizations data..."
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM organizations WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > /workspace/organizations_data.csv
+      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd)/workspace:/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM organizations WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > workspace/organizations_data.csv
 
       - echo "Running psql to dump employees data..."
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM employees WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > /workspace/employees_data.csv
+      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd)/workspace:/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM employees WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > workspace/employees_data.csv
 
       - echo "Combining schema and data into final_dump.sql..."
-      - cat /workspace/schema_dump.sql > /workspace/final_dump.sql
-      - echo "\COPY organizations FROM '/workspace/organizations_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
-      - echo "\COPY employees FROM '/workspace/employees_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
+      - cat workspace/schema_dump.sql > workspace/final_dump.sql
+      - echo "\COPY organizations FROM 'workspace/organizations_data.csv' CSV HEADER;" >> workspace/final_dump.sql
+      - echo "\COPY employees FROM 'workspace/employees_data.csv' CSV HEADER;" >> workspace/final_dump.sql
 
       # Upload the generated dump file to S3
       - echo "Uploading final_dump.sql to S3..."
-      - aws s3 cp /workspace/final_dump.sql s3://my-test-bucket-southeast-2/sqlFiles/dump/final_dump.sql
+      - aws s3 cp workspace/final_dump.sql s3://my-test-bucket-southeast-2/sqlFiles/dump/final_dump.sql
 
       # Immediately download it back with rules.sql from S3
       - echo "Downloading final_dump.sql and rules.sql from S3..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/dump/final_dump.sql /workspace/final_dump.sql
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql /workspace/rules.sql
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/dump/final_dump.sql ./workspace/final_dump.sql
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./workspace/rules.sql
+
+      - echo "Listing the contents of the workspace directory:"
+      - ls -la ./workspace
 
       - echo "Running anonymization..."
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
+      - docker run -v $(pwd)/workspace:/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
 
   post_build:
     commands:
       - echo "Uploading anonymized file to S3..."
-      - aws s3 cp /workspace/anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
+      - aws s3 cp ./workspace/anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
       - echo "Build complete."
 
 artifacts:
   files:
-    - /workspace/anonymized.sql
+    - ./workspace/anonymized.sql
