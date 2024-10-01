@@ -7,38 +7,34 @@ phases:
       - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:latest
       - echo "Docker image pulled successfully."
       - echo "Downloading rule file from S3..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql /workspace/rules.sql
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql /rules.sql
       - echo "Downloading database dump script from S3..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/dump_script.sh /workspace/dump_script.sh
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/dump_script.sh /dump_script.sh
       - echo "Files downloaded:"
-      - ls -la /workspace
       - echo "Making the script executable..."
-      - chmod +x /workspace/dump_script.sh
+      - chmod +x /dump_script.sh
 
   build:
     commands:
       - echo "Running database dump script..."
-      - /workspace/dump_script.sh # This runs the custom dump script, which generates the tar file containing the SQL dump
+      - /dump_script.sh # This runs the custom dump script, which generates the tar file containing the SQL dump
       - echo "Extracting the SQL dump from the tar file..."
-      - tar -xvf /workspace/final_dump.tar -C /workspace
-      - echo "SQL dump extracted successfully. Listing contents of /workspace:"
-      - ls -la /workspace
+      - tar -xvf /final_dump.tar -C /workspace
+      - echo "SQL dump extracted successfully. Listing contents of /:"
+      - ls -la /
       - echo "Running anonymization"
       - echo "Checking current directory:"
-      - ls -la $(pwd)
       - echo "Testing Docker mounting:"
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest ls -la /workspace
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "ls -la /workspace && cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
+      - docker run -v /registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /final_dump.sql /rules.sql | /src/docker/anon.sh > /anonymized.sql"
       - echo "Anonymization complete"
 
   post_build:
     commands:
       - echo "Uploading anonymized file to S3"
-      - aws s3 cp /workspace/anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
+      - aws s3 cp /anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
       - echo "Build complete"
-      - ls -la /workspace
-      - cat /workspace/anonymized.sql
+      - cat /anonymized.sql
 
 artifacts:
   files:
-    - /workspace/anonymized.sql
+    - /anonymized.sql
