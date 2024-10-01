@@ -19,13 +19,13 @@ phases:
       - echo "Running database dump script..."
       - /dump_script.sh # This runs the custom dump script, which generates the tar file containing the SQL dump
       - echo "Extracting the SQL dump from the tar file..."
-      - tar -xvf /final_dump.tar -C /workspace
+      - tar -xvf /final_dump.tar -C /
       - echo "SQL dump extracted successfully. Listing contents of /:"
       - ls -la /
       - echo "Running anonymization"
       - echo "Checking current directory:"
       - echo "Testing Docker mounting:"
-      - docker run -v /registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /final_dump.sql /rules.sql | /src/docker/anon.sh > /anonymized.sql"
+      - docker run -v $(pwd):/registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /final_dump.sql /rules.sql | /src/docker/anon.sh > /anonymized.sql"
       - echo "Anonymization complete"
 
   post_build:
