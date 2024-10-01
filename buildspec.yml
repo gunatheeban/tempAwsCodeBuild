@@ -6,35 +6,48 @@ phases:
       - echo "Logging into Docker..."
       - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:latest
       - echo "Docker image pulled successfully."
+      - echo "Setting environment variables..."
+      - export DB_HOST="3.27.60.149"
+      - export DB_USER="irvuser"
+      - export DB_NAME="org_db"
+      - export DB_PASSWORD="irvpass"
+      - export ORG_ID=1
       - echo "Downloading rule file from S3..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql /rules.sql
-      - echo "Downloading database dump script from S3..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/dump_script.sh /dump_script.sh
-      - echo "Files downloaded:"
-      - echo "Making the script executable..."
-      - chmod +x /dump_script.sh
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
 
   build:
     commands:
-      - echo "Running database dump script..."
-      - /dump_script.sh # This runs the custom dump script, which generates the tar file containing the SQL dump
-      - echo "Extracting the SQL dump from the tar file..."
-      - tar -xvf /final_dump.tar -C /
-      - echo "SQL dump extracted successfully. Listing contents of /:"
-      - ls -la /
-      - echo "Running anonymization"
-      - echo "Checking current directory:"
-      - echo "Testing Docker mounting:"
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
-      - echo "Anonymization complete"
+      - echo "Creating data dump for organization $ORG_ID..."
+      - export PGPASSWORD="$DB_PASSWORD"
+      
+      # Dumping schema first
+      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest pg_dump --schema-only -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > /workspace/schema_dump.sql
+
+      # Dumping organization-specific data using psql and COPY command
+      - echo "Dumping data for organization $ORG_ID..."
+      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM organizations WHERE org_id = $ORG_ID) TO '/workspace/organizations_data.csv' WITH CSV HEADER"
+      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM employees WHERE org_id = $ORG_ID) TO '/workspace/employees_data.csv' WITH CSV HEADER"
+
+      # Repeat for other organization-related data as needed
+
+      - echo "Combining schema and data into a single SQL file..."
+      - cat /workspace/schema_dump.sql > /workspace/final_dump.sql
+      - echo "\COPY organizations FROM '/workspace/organizations_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
+      - echo "\COPY employees FROM '/workspace/employees_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
+
+      # Repeat for other CSVs if necessary
+      
+      - echo "Running anonymization..."
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
 
   post_build:
     commands:
       - echo "Uploading anonymized file to S3"
-      - aws s3 cp /anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
+      - aws s3 cp /workspace/anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
       - echo "Build complete"
-      - cat /anonymized.sql
+      - ls -la /workspace
+      - cat /workspace/anonymized.sql
 
 artifacts:
   files:
-    - /anonymized.sql
+    - /workspace/anonymized.sql
