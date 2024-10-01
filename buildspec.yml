@@ -24,7 +24,7 @@ phases:
       - echo "SQL dump extracted successfully. Listing contents of /workspace:"
       - ls -la /workspace
       - echo "Running anonymization"
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "ls -la /workspace && cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
       - echo "Anonymization complete"
 
   post_build:
