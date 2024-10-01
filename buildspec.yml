@@ -7,18 +7,18 @@ phases:
       - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:latest
       - echo "Docker image pulled successfully."
       - echo "Downloading rule file from S3..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql /workspace/rules.sql
       - echo "Downloading database dump script from S3..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/dump_script.sh ./dump_script.sh
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/dump_script.sh /workspace/dump_script.sh
       - echo "Files downloaded:"
-      - ls -la
+      - ls -la /workspace
       - echo "Making the script executable..."
-      - chmod +x ./dump_script.sh
+      - chmod +x /workspace/dump_script.sh
 
   build:
     commands:
       - echo "Running database dump script..."
-      - ./dump_script.sh # This runs the custom dump script, which generates the tar file containing the SQL dump
+      - /workspace/dump_script.sh # This runs the custom dump script, which generates the tar file containing the SQL dump
       - echo "Extracting the SQL dump from the tar file..."
       - tar -xvf /workspace/final_dump.tar -C /workspace
       - echo "SQL dump extracted successfully. Listing contents of /workspace:"
@@ -32,7 +32,7 @@ phases:
       - echo "Uploading anonymized file to S3"
       - aws s3 cp /workspace/anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
       - echo "Build complete"
-      - ls -la
+      - ls -la /workspace
       - cat /workspace/anonymized.sql
 
 artifacts:
