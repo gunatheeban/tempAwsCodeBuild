@@ -3,61 +3,25 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo "Logging into Docker..."
+      - echo "Pulling the Docker image..."
       - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:latest
       - echo "Docker image pulled successfully."
-      - echo "Setting environment variables..."
-      - export DB_HOST="3.27.60.149"
-      - export DB_USER="irvuser"
-      - export DB_NAME="org_db"
-      - export DB_PASSWORD="irvpass"
-      - export ORG_ID=1
-      - echo "Creating /workspace directory..."
-      - mkdir -p /workspace
-
-      # Download rules.sql to the /workspace directory
       - echo "Downloading rule file from S3..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql /workspace/rules.sql
+      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
 
   build:
     commands:
-      - echo "Creating data dump for organization $ORG_ID..."
-      - export PGPASSWORD="$DB_PASSWORD"
-
-      # Dumping schema, save in /workspace
-      - echo "Dumping schema..."
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest pg_dump --schema-only -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > /workspace/schema_dump.sql
-
-      # Verify that schema dump exists
-      - echo "Listing /workspace after schema dump:"
-      - ls -la /workspace
-
-      # Dump organization-specific data, save in /workspace
-      - echo "Dumping data for organization $ORG_ID..."
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM organizations WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > /workspace/organizations_data.csv
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM employees WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > /workspace/employees_data.csv
-
-      # Verify that data dumps exist
-      - echo "Listing /workspace after data dumps:"
-      - ls -la /workspace
-
-      # Combine schema and data into final_dump.sql, store in /workspace
-      - echo "Combining schema and data into final_dump.sql..."
-      - cat /workspace/schema_dump.sql > /workspace/final_dump.sql
-      - echo "\COPY organizations FROM '/workspace/organizations_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
-      - echo "\COPY employees FROM '/workspace/employees_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
-
-      # Verify that final_dump.sql exists
-      - echo "Listing /workspace after creating final_dump.sql:"
-      - ls -la /workspace
-
-      # Log /workspace contents inside Docker
-      - echo "Logging /workspace contents inside Docker..."
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "ls -la /workspace"
-
-      # Run anonymization
-      - echo "Running anonymization..."
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
+      - echo "Running the entire process inside Docker..."
+      - docker run -e DB_HOST="3.27.60.149" -e DB_USER="irvuser" -e DB_NAME="org_db" -e DB_PASSWORD="irvpass" -e ORG_ID=1 \
+          -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest \
+          sh -c "export PGPASSWORD=\$DB_PASSWORD && \
+                 pg_dump --schema-only -h \$DB_HOST -U \$DB_USER -d \$DB_NAME > /workspace/schema_dump.sql && \
+                 psql -h \$DB_HOST -U \$DB_USER -d \$DB_NAME -c 'COPY (SELECT * FROM organizations WHERE org_id = \$ORG_ID) TO STDOUT WITH CSV HEADER' > /workspace/organizations_data.csv && \
+                 psql -h \$DB_HOST -U \$DB_USER -d \$DB_NAME -c 'COPY (SELECT * FROM employees WHERE org_id = \$ORG_ID) TO STDOUT WITH CSV HEADER' > /workspace/employees_data.csv && \
+                 cat /workspace/schema_dump.sql > /workspace/final_dump.sql && \
+                 echo '\COPY organizations FROM /workspace/organizations_data.csv CSV HEADER;' >> /workspace/final_dump.sql && \
+                 echo '\COPY employees FROM /workspace/employees_data.csv CSV HEADER;' >> /workspace/final_dump.sql && \
+                 cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
 
   post_build:
     commands:
