@@ -15,52 +15,48 @@ phases:
       - echo "Creating /workspace directory..."
       - mkdir -p /workspace
 
-      # Download rules.sql from S3 to /workspace
+      # Download rules.sql to the same /workspace directory
       - echo "Downloading rule file from S3..."
       - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql /workspace/rules.sql
-      
-      # Verify that rules.sql exists in /workspace
-      - echo "Listing contents of /workspace to verify rules.sql..."
-      - ls -la /workspace
 
   build:
     commands:
       - echo "Creating data dump for organization $ORG_ID..."
       - export PGPASSWORD="$DB_PASSWORD"
 
-      # Dumping schema first
+      # Dumping schema first, store in /workspace
       - echo "Dumping schema..."
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest pg_dump --schema-only -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > $(pwd)/schema_dump.sql
+      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest pg_dump --schema-only -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > /workspace/schema_dump.sql
 
       # Verify that schema dump exists
-      - echo "Listing current directory after schema dump:"
-      - ls -la $(pwd)
+      - echo "Listing /workspace after schema dump:"
+      - ls -la /workspace
 
-      # Dumping organization-specific data using psql and COPY TO STDOUT with redirection to file
+      # Dumping organization-specific data using psql and COPY TO STDOUT, store in /workspace
       - echo "Dumping data for organization $ORG_ID..."
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM organizations WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > $(pwd)/organizations_data.csv
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM employees WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > $(pwd)/employees_data.csv
+      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM organizations WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > /workspace/organizations_data.csv
+      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM employees WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > /workspace/employees_data.csv
 
       # Verify that data dumps exist
-      - echo "Listing current directory after data dumps:"
-      - ls -la $(pwd)
+      - echo "Listing /workspace after data dumps:"
+      - ls -la /workspace
 
-      # Combine the schema and data into a single SQL file
+      # Combine the schema and data into a single SQL file, store in /workspace
       - echo "Combining schema and data into final_dump.sql..."
-      - cat $(pwd)/schema_dump.sql > $(pwd)/final_dump.sql
-      - echo "\COPY organizations FROM '$(pwd)/organizations_data.csv' CSV HEADER;" >> $(pwd)/final_dump.sql
-      - echo "\COPY employees FROM '$(pwd)/employees_data.csv' CSV HEADER;" >> $(pwd)/final_dump.sql
+      - cat /workspace/schema_dump.sql > /workspace/final_dump.sql
+      - echo "\COPY organizations FROM '/workspace/organizations_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
+      - echo "\COPY employees FROM '/workspace/employees_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
 
       # Verify that final_dump.sql exists
-      - echo "Listing current directory after creating final_dump.sql:"
-      - ls -la $(pwd)
+      - echo "Listing /workspace after creating final_dump.sql:"
+      - ls -la /workspace
 
       # Check if rules.sql is in /workspace before anonymization
       - echo "Checking if rules.sql exists in /workspace before running anonymization..."
       - ls -la /workspace
 
       - echo "Running anonymization..."
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "ls -la /workspace && cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
 
   post_build:
     commands:
