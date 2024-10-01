@@ -15,7 +15,7 @@ phases:
       - echo "Creating /workspace directory..."
       - mkdir -p /workspace
 
-      # Download rules.sql to the same /workspace directory
+      # Download rules.sql to the /workspace directory
       - echo "Downloading rule file from S3..."
       - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql /workspace/rules.sql
 
@@ -24,7 +24,7 @@ phases:
       - echo "Creating data dump for organization $ORG_ID..."
       - export PGPASSWORD="$DB_PASSWORD"
 
-      # Dumping schema first, store in /workspace
+      # Dumping schema, save in /workspace
       - echo "Dumping schema..."
       - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest pg_dump --schema-only -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > /workspace/schema_dump.sql
 
@@ -32,7 +32,7 @@ phases:
       - echo "Listing /workspace after schema dump:"
       - ls -la /workspace
 
-      # Dumping organization-specific data using psql and COPY TO STDOUT, store in /workspace
+      # Dump organization-specific data, save in /workspace
       - echo "Dumping data for organization $ORG_ID..."
       - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM organizations WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > /workspace/organizations_data.csv
       - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM employees WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > /workspace/employees_data.csv
@@ -41,7 +41,7 @@ phases:
       - echo "Listing /workspace after data dumps:"
       - ls -la /workspace
 
-      # Combine the schema and data into a single SQL file, store in /workspace
+      # Combine schema and data into final_dump.sql, store in /workspace
       - echo "Combining schema and data into final_dump.sql..."
       - cat /workspace/schema_dump.sql > /workspace/final_dump.sql
       - echo "\COPY organizations FROM '/workspace/organizations_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
@@ -51,11 +51,11 @@ phases:
       - echo "Listing /workspace after creating final_dump.sql:"
       - ls -la /workspace
 
-      # Log the /workspace contents from inside the Docker container
-      - echo "Logging /workspace contents from inside the Docker container..."
+      # Log /workspace contents inside Docker
+      - echo "Logging /workspace contents inside Docker..."
       - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "ls -la /workspace"
 
-      # Running anonymization
+      # Run anonymization
       - echo "Running anonymization..."
       - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
 
