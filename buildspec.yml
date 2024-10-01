@@ -14,6 +14,8 @@ phases:
       - export ORG_ID=1
       - echo "Downloading rule file from S3..."
       - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
+      - echo "Creating /workspace directory..."
+      - mkdir -p /workspace
 
   build:
     commands:
@@ -28,15 +30,11 @@ phases:
       - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM organizations WHERE org_id = $ORG_ID) TO '/workspace/organizations_data.csv' WITH CSV HEADER"
       - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM employees WHERE org_id = $ORG_ID) TO '/workspace/employees_data.csv' WITH CSV HEADER"
 
-      # Repeat for other organization-related data as needed
-
-      - echo "Combining schema and data into a single SQL file..."
+      # Combine the schema and data into a single SQL file
       - cat /workspace/schema_dump.sql > /workspace/final_dump.sql
       - echo "\COPY organizations FROM '/workspace/organizations_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
       - echo "\COPY employees FROM '/workspace/employees_data.csv' CSV HEADER;" >> /workspace/final_dump.sql
 
-      # Repeat for other CSVs if necessary
-      
       - echo "Running anonymization..."
       - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
 
