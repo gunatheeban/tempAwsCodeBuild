@@ -4,7 +4,7 @@ phases:
   pre_build:
     commands:
       - echo "Logging into Docker..."
-      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:stable
+      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:latest
       - echo "Docker image pulled successfully."
       - echo "Downloading rule file from S3..."
       - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./rules.sql
@@ -24,7 +24,7 @@ phases:
       - echo "SQL dump extracted successfully. Listing contents of /workspace:"
       - ls -la /workspace
       - echo "Running anonymization"
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:stable sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
       - echo "Anonymization complete"
 
   post_build:
