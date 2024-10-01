@@ -25,7 +25,7 @@ phases:
       - echo "Running anonymization"
       - echo "Checking current directory:"
       - echo "Testing Docker mounting:"
-      - docker run -v $(pwd):/registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /final_dump.sql /rules.sql | /src/docker/anon.sh > /anonymized.sql"
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
       - echo "Anonymization complete"
 
   post_build:
