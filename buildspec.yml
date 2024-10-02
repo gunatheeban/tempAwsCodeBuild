@@ -28,6 +28,7 @@ phases:
       - echo "Prepending CREATE EXTENSION IF NOT EXISTS anon; to test_db.sql..."
       - sed -i.bak '1iCREATE EXTENSION IF NOT EXISTS anon;' $(pwd)/test_db.sql
       - echo "Extension added to test_db.sql."
+      - cat $(pwd)/test_db.sql
       
       - echo "Running the JAR file with Java 17 and passing environment variables..."
       # Replace the placeholders with the environment variables and pass them to the JAR
