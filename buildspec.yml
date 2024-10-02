@@ -24,18 +24,18 @@ phases:
       - echo "Dumping database schema only..."
       - docker run --rm --network="host" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "PGPASSWORD=$DB_PASSWORD pg_dump --schema-only -h $DB_HOST -p 5432 -U $DB_USER -d $DB_NAME > /workspace/test_db.sql"
       - echo "Database schema dump complete."
-	  - ls -la
-      
+      - ls -la
+
       - echo "Verifying existence and contents of test_db.sql and rules.sql files..."
       - cat /workspace/test_db.sql
       - cat /workspace/rules.sql
       - echo "Files verified."
 
-
   post_build:
     commands:
       - echo "Uploading anonymized file to S3..."
-
+      - aws s3 cp /workspace/anonymized.sql s3://$S3_BUCKET/sqlFiles/sinorbis/anonymized/anonymized.sql --region your-region
+      - echo "Anonymized file uploaded to S3 successfully."
 
 artifacts:
   files:
