@@ -19,7 +19,7 @@ phases:
     commands:
       - echo "Dumping database..."
       # Using environment variables for database connection
-      - docker run --rm --network="host" -v $(pwd):/workspace postgres:latest sh -c "PGPASSWORD=$DB_PASSWORD pg_dump -h $DB_HOST -p 5432 -U $DB_USER -d $DB_NAME -F p > /workspace/test_db.sql"
+      - docker run --rm --network="host" -v $(pwd):/workspace postgres:latest sh -c "PGPASSWORD=$DB_PASSWORD pg_dump --data-only -h $DB_HOST -p 5432 -U $DB_USER -d $DB_NAME -F p > /workspace/test_db.sql"
       - echo "Database dump complete."
 
   post_build:
