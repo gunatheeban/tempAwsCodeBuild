@@ -35,10 +35,10 @@ phases:
   post_build:
     commands:
       - echo "Displaying the contents of the dump file..."
-      - cat test_db.sql
+      - cat anonymized.sql
       - echo "Build complete."
       - ls -la
 
 artifacts:
   files:
-    - test_db.sql
+    - anonymized.sql
