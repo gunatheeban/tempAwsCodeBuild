@@ -30,7 +30,7 @@ phases:
       - java -jar pgsql.jar --conf.path=$(pwd)/test_db.sql --spring.datasource.url=jdbc:postgresql://$DB_HOST:5432/$DB_NAME --spring.datasource.username=$DB_USER --spring.datasource.password=$DB_PASSWORD
       - echo "JAR execution complete."
 
-      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/test_db.sql /workspace/rules.sql | /src/docker/anon.sh > /anonymized.sql"
+      - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/test_db.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
 
   post_build:
     commands:
