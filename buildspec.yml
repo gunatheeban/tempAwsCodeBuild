@@ -26,11 +26,7 @@ phases:
       
       - echo "Running the JAR file with Java 17 and passing environment variables..."
       # Replace the placeholders with the environment variables and pass them to the JAR
-      - java -jar pgsql.jar \
-        --conf.path=$(pwd)/test_db.sql \
-        --spring.datasource.url=jdbc:postgresql://$DB_HOST:5432/$DB_NAME \
-        --spring.datasource.username=$DB_USER \
-        --spring.datasource.password=$DB_PASSWORD
+      - java -jar pgsql.jar --conf.path=$(pwd)/test_db.sql --spring.datasource.url=jdbc:postgresql://$DB_HOST:5432/$DB_NAME --spring.datasource.username=$DB_USER --spring.datasource.password=$DB_PASSWORD
       - echo "JAR execution complete."
 
   post_build:
