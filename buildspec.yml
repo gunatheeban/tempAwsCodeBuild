@@ -24,6 +24,9 @@ phases:
       - echo "Dumping database schema only..."
       - docker run --rm --network="host" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "PGPASSWORD=$DB_PASSWORD pg_dump --schema-only -h $DB_HOST -p 5432 -U $DB_USER -d $DB_NAME > /workspace/test_db.sql"
       - echo "Database schema dump complete."
+      - echo "Prepending CREATE EXTENSION IF NOT EXISTS anon; to test_db.sql..."
+      - sed -i '1iCREATE EXTENSION IF NOT EXISTS anon;' /workspace/test_db.sql
+      - echo "Extension added to test_db.sql."
       
       - echo "Running the JAR file with Java 17 and passing environment variables..."
       # Replace the placeholders with the environment variables and pass them to the JAR
