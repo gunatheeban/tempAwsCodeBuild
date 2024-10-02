@@ -32,17 +32,16 @@ phases:
       - echo "Running the anonymization process..."
       - docker run -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/test_db.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
       - echo "Anonymization complete."
+
       - echo "Displaying the contents of the anonymized.sql file..."
       - cat /workspace/anonymized.sql
 
   post_build:
     commands:
-      - echo "Checking if anonymized.sql exists..."
-      - ls -la /workspace/anonymized.sql
-      - echo "S3 Bucket: $S3_BUCKET"
+      - echo "Uploading anonymized file to S3..."
       - aws s3 cp /workspace/anonymized.sql s3://$S3_BUCKET/sqlFiles/sinorbis/anonymized/anonymized.sql --region your-region
       - echo "Anonymized file uploaded to S3 successfully."
-
+      - ls -la /workspace
 
 artifacts:
   files:
