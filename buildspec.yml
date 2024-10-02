@@ -1,57 +1,33 @@
 version: 0.2
 
+env:
+  variables:
+    DB_HOST: "52.64.11.246"
+    DB_NAME: "irvdblive"
+    DB_USER: "irvuser"
+    DB_PASSWORD: "irvpass"
+    S3_BUCKET: "my-test-bucket-southeast-2"
+
 phases:
   pre_build:
     commands:
-      - echo "Pulling the Docker image..."
-      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:latest
+      - echo "Logging into Docker..."
+      - docker pull postgres:latest
       - echo "Docker image pulled successfully."
-      - echo "Setting environment variables..."
-      - export DB_HOST="3.27.60.149"
-      - export DB_USER="irvuser"
-      - export DB_NAME="org_db"
-      - export DB_PASSWORD="irvpass"
-      - export ORG_ID=1
-      - echo "Creating /workspace directory..."
-      - mkdir -p workspace
 
   build:
     commands:
-      - echo "Running pg_dump for schema-only..."
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd)/workspace:/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest pg_dump --schema-only -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > workspace/schema_dump.sql
-
-      - echo "Running psql to dump organizations data..."
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd)/workspace:/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM organizations WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > workspace/organizations_data.csv
-
-      - echo "Running psql to dump employees data..."
-      - docker run -e PGPASSWORD="$DB_PASSWORD" -v $(pwd)/workspace:/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "COPY (SELECT * FROM employees WHERE org_id = $ORG_ID) TO STDOUT WITH CSV HEADER" > workspace/employees_data.csv
-
-      - echo "Combining schema and data into final_dump.sql..."
-      - cat workspace/schema_dump.sql > workspace/final_dump.sql
-      - echo "\COPY organizations FROM 'workspace/organizations_data.csv' CSV HEADER;" >> workspace/final_dump.sql
-      - echo "\COPY employees FROM 'workspace/employees_data.csv' CSV HEADER;" >> workspace/final_dump.sql
-
-      # Upload the generated dump file to S3
-      - echo "Uploading final_dump.sql to S3..."
-      - aws s3 cp workspace/final_dump.sql s3://my-test-bucket-southeast-2/sqlFiles/dump/final_dump.sql
-
-      # Immediately download it back with rules.sql from S3
-      - echo "Downloading final_dump.sql and rules.sql from S3..."
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/dump/final_dump.sql ./workspace/final_dump.sql
-      - aws s3 cp s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/config/rules.sql ./workspace/rules.sql
-
-      - echo "Listing the contents of the workspace directory:"
-      - ls -la ./workspace
-
-      - echo "Running anonymization..."
-      - docker run -v $(pwd)/workspace:/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "cat /workspace/final_dump.sql /workspace/rules.sql | /src/docker/anon.sh > /workspace/anonymized.sql"
+      - echo "Dumping database..."
+      # Using environment variables for database connection
+      - docker run --rm --network="host" -v $(pwd):/workspace postgres:latest sh -c "PGPASSWORD=$DB_PASSWORD pg_dump -h $DB_HOST -p 5432 -U $DB_USER -d $DB_NAME -F p > /workspace/test_db.sql"
+      - echo "Database dump complete."
 
   post_build:
     commands:
-      - echo "Uploading anonymized file to S3..."
-      - aws s3 cp ./workspace/anonymized.sql s3://my-test-bucket-southeast-2/sqlFiles/sinorbis/anonymizerFiles/anonymized.sql
-      - echo "Build complete."
+      - echo "Build complete. The database dump is stored at test_db.sql."
+      - ls -la
+      - cat test_db.sql
 
 artifacts:
   files:
-    - ./workspace/anonymized.sql
+    - test_db.sql
