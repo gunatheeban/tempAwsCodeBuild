@@ -12,31 +12,30 @@ phases:
   pre_build:
     commands:
       - echo "Logging into Docker..."
-      - docker pull registry.gitlab.com/dalibo/postgresql_anonymizer:latest
-      - echo "PostgreSQL Anonymizer Docker image pulled successfully."
-      - echo "Downloading JAR file and rule file from S3..."
+      - docker pull postgres:latest
+      - echo "Docker image pulled successfully."
+      - echo "Downloading JAR file from S3..."
       - aws s3 cp s3://$S3_BUCKET/sqlFiles/sinorbis/config/pgsql.jar ./pgsql.jar
-      - aws s3 cp s3://$S3_BUCKET/sqlFiles/sinorbis/config/rules.sql ./rules.sql
-      - echo "JAR and rule files downloaded."
+      - echo "JAR file downloaded."
 
   build:
     commands:
       - echo "Dumping database schema only..."
-      - docker run --rm --network="host" -v $(pwd):/workspace registry.gitlab.com/dalibo/postgresql_anonymizer:latest sh -c "PGPASSWORD=$DB_PASSWORD pg_dump --schema-only -h $DB_HOST -p 5432 -U $DB_USER -d $DB_NAME > /workspace/test_db.sql"
+      - docker run --rm --network="host" -v $(pwd):/workspace postgres:latest sh -c "PGPASSWORD=$DB_PASSWORD pg_dump --schema-only -h $DB_HOST -p 5432 -U $DB_USER -d $DB_NAME > /workspace/test_db.sql"
       - echo "Database schema dump complete."
-      - ls -la
-
-      - echo "Verifying existence and contents of test_db.sql and rules.sql files..."
-      - cat /workspace/test_db.sql
-      - cat /workspace/rules.sql
-      - echo "Files verified."
+      
+      - echo "Running the JAR file with Java 17 and passing environment variables..."
+      # Replace the placeholders with the environment variables and pass them to the JAR
+      - java -jar pgsql.jar --conf.path=$(pwd)/test_db.sql --spring.datasource.url=jdbc:postgresql://$DB_HOST:5432/$DB_NAME --spring.datasource.username=$DB_USER --spring.datasource.password=$DB_PASSWORD
+      - echo "JAR execution complete."
 
   post_build:
     commands:
-      - echo "Uploading anonymized file to S3..."
-      - aws s3 cp /workspace/anonymized.sql s3://$S3_BUCKET/sqlFiles/sinorbis/anonymized/anonymized.sql --region your-region
-      - echo "Anonymized file uploaded to S3 successfully."
+      - echo "Displaying the contents of the dump file..."
+      - cat test_db.sql
+      - echo "Build complete."
+      - ls -la
 
 artifacts:
   files:
-    - /workspace/anonymized.sql
+    - test_db.sql
